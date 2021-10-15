@@ -1,8 +1,8 @@
 use std::cmp::min;
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use num::{Integer, Signed};
 
 #[derive(Default)]
-pub struct Process<T: PartialOrd + Sub<Output = T> + AddAssign + Ord> {
+pub struct Process<T: Integer> {
     // Vector queue containing all processing bursts (CPU and I/O)
     // When number of processes is odd, it is currently CPU burst
     // When number of processes is even, it is currently I/O burst
@@ -23,29 +23,27 @@ pub struct Process<T: PartialOrd + Sub<Output = T> + AddAssign + Ord> {
     total_process_time: T,
 }
 
-impl<T: PartialOrd + Sub<Output = T> + AddAssign + SubAssign + Add<Output = T> + Ord> Process<T> {
+impl<T: Integer + Signed> Process<T> {
     pub fn run(&self, time_quanta: T, global_clock: T) -> T {
         /* Counts down on the current process burst with the time-quanta that the process was alloted.
             Returns any un-used time-quanta. Updates total waiting time and time-last accessed.
             Time quanta must be a positive integer.
         */
-        
-        let zero: T = 0;
 
         // Precondition, time_quanta cannot be a negative number.
-        assert!(time_quanta >= zero);
+        assert!(time_quanta >= 0);
 
         // Update waiting time
-        self.waiting_time += global_clock - self.last_accessed;
+        self.waiting_time = self.waiting_time + (global_clock - self.last_accessed);
 
         // Subtract time_quanta from current process burst to get unused time.
-        self.process_bursts[0] -= time_quanta;
+        self.process_bursts[0] = self.process_bursts[0] - time_quanta;
         let unused_time: T = min(self.process_bursts[0], 0);
 
         // Update time last accessed
         self.last_accessed = global_clock + (time_quanta - unused_time);
 
-        return unused_time.abs();
+        return T::abs(&unused_time);
     }
 }
 
