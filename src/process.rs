@@ -1,8 +1,8 @@
-pub use std::cmp::min;
-pub use std::collections::VecDeque;
+use std::cmp::min;
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 
 #[derive(Default)]
-pub struct Process<T> {
+pub struct Process<T: PartialOrd + Sub<Output = T> + AddAssign + Ord> {
     // Vector queue containing all processing bursts (CPU and I/O)
     // When number of processes is odd, it is currently CPU burst
     // When number of processes is even, it is currently I/O burst
@@ -23,14 +23,17 @@ pub struct Process<T> {
     total_process_time: T,
 }
 
-impl Process<T> {
+impl<T: PartialOrd + Sub<Output = T> + AddAssign + SubAssign + Add<Output = T> + Ord> Process<T> {
     pub fn run(&self, time_quanta: T, global_clock: T) -> T {
         /* Counts down on the current process burst with the time-quanta that the process was alloted.
             Returns any un-used time-quanta. Updates total waiting time and time-last accessed.
             Time quanta must be a positive integer.
         */
+        
+        let zero: T = 0;
+
         // Precondition, time_quanta cannot be a negative number.
-        assert!(time_quanta >= 0);
+        assert!(time_quanta >= zero);
 
         // Update waiting time
         self.waiting_time += global_clock - self.last_accessed;
@@ -48,20 +51,23 @@ impl Process<T> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
+
     #[test]
     fn run_process() {
-        let mut bursts = VecDeque::new();
+        let mut bursts = VecDeque::<i32>::new();
 
         bursts.push_back(5);
         bursts.push_back(4);
 
-        let mut process_1 = Process {
+        let mut process_1 = super::Process {
             process_bursts: bursts,
             total_process_time: 9,
             name: "P1".to_string(),
             ..Default::default()
         };
 
-        assert_ne!(process_1, None);
+        let left_over = process_1.run(4, 10);
+        assert_eq!(left_over, 1);
     }
 }
