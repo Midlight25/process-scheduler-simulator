@@ -89,4 +89,27 @@ name = "process-scheduler-simulator"
 version = "0.1.0"
 dependencies = [
  "num",
+ "sorts",
+ "tabular",
 ]
+
+[[package]]
+name = "sorts"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aaeb1046047ab796c67658308dee604f6901cdcee3c40bb5d23c3cffa43dafb8"
+
+[[package]]
+name = "tabular"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7e35bee02dcefe64a74065b6b869d241eab1a02fea0d65e6074ce4e51894c3b"
+dependencies = [
+ "unicode-width",
+]
+
+[[package]]
+name = "unicode-width"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ed742d4ea2bd1176e236172c8429aaf54486e7ac098db29ffe6529e0ce50973"

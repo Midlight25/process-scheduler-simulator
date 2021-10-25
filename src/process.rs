@@ -1,11 +1,13 @@
 use std::cmp::{min, Ordering};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Process {
     // Vector queue containing all processing bursts (CPU and I/O)
     // When number of processes is odd, it is currently CPU burst
     // When number of processes is even, it is currently I/O burst
     pub process_bursts: std::collections::VecDeque<i32>,
+    // Records first time that Process was activated.
+    pub first_accessed: Option<i32>,
     // Last time that this process had run according to global clock
     // Used to calculate time spend in waiting queue.
     pub last_accessed: i32,
@@ -31,6 +33,10 @@ impl Process {
 
         // Precondition, time_quanta cannot be a negative number.
         assert!(time_quanta >= 0);
+
+        if let None = self.first_accessed {
+            self.first_accessed = Some(global_clock);
+        }
 
         // Get current process_burst from VeqDeque
         let process_burst = match self.process_bursts.get_mut(0) {
