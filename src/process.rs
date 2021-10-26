@@ -1,4 +1,5 @@
 use std::cmp::{min, Ordering};
+use std::fmt::{Display, Formatter, Result};
 
 #[derive(Default, Debug)]
 pub struct Process {
@@ -77,6 +78,21 @@ impl PartialOrd for Process {
 impl PartialEq for Process {
     fn eq(&self, other: &Self) -> bool {
         self.process_bursts.get(0).unwrap() == other.process_bursts.get(0).unwrap()
+    }
+}
+
+impl Display for Process {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(
+            f,
+            "[ Process \"{}\" Curr CPU: {}, Next CPU: {}, Next IO: {} Last Access: {} Return Time: {} ]",
+            self.name,
+            self.process_bursts.get(0).unwrap_or(&-1),
+            self.process_bursts.get(2).unwrap_or(&-1),
+            self.process_bursts.get(1).unwrap_or(&-1),
+            self.last_accessed,
+            self.return_from_io_time
+        )
     }
 }
 

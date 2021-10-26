@@ -177,6 +177,6 @@ fn print_processes(mut processes: VecDeque<process::Process>) {
 
 fn print_queue(process_queue: &VecDeque<process::Process>) {
     for process in process_queue.iter() {
-        println!("{:#?}", process);
+        println!("{}", process);
     }
 }
