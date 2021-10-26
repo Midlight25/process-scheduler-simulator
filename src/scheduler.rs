@@ -9,6 +9,13 @@ pub fn fcfs_scheduler(mut processes: VecDeque<process::Process>) {
     let mut graveyard: VecDeque<process::Process> = VecDeque::new();
 
     while !processes.is_empty() || !io_queue.is_empty() {
+        println!("Global Clock is {}", global_clock);
+        println!("Current Process Queue:");
+        print_queue(&processes);
+        println!("Current IO Queue:");
+        print_queue(&io_queue);
+        println!("Global Clock is {}", global_clock);
+
         // Run process at front of queue
         match processes.pop_front() {
             // If there is a process in the queue.
@@ -166,4 +173,10 @@ fn print_processes(mut processes: VecDeque<process::Process>) {
     );
 
     print!("{}", table);
+}
+
+fn print_queue(process_queue: &VecDeque<process::Process>) {
+    for process in process_queue.iter() {
+        println!("{:#?}", process);
+    }
 }
