@@ -7,20 +7,18 @@ pub struct Process {
     // When number of processes is even, it is currently I/O burst
     pub process_bursts: std::collections::VecDeque<i32>,
     // Records first time that Process was activated.
+    // Used to calculate Response Time.
     pub first_accessed: Option<i32>,
     // Last time that this process had run according to global clock
-    // Used to calculate time spend in waiting queue.
+    // The final value is last_accessed is also the turnaround time, and can be used to calculate the waiting time.
     pub last_accessed: i32,
-    // Total time process spends in waiting queues.
-    // Used to calculate total turnaround time.
-    pub waiting_time: i32,
     // ID String for process
     pub name: String,
     // Time Point calculated against global clock for processes return from
     // IO burst state.
     pub return_from_io_time: i32,
     // Calculated at process creation time, total burst times summed up from process_bursts
-    // used to calculate total turnaround time.
+    // used to calculate waiting time later.
     pub total_process_time: i32,
 }
 
@@ -44,11 +42,8 @@ impl Process {
             None => panic!("No burst found for Process"),
         };
 
-        // Update waiting time
-        self.waiting_time = self.waiting_time + (global_clock - self.last_accessed);
-
         // Subtract time_quanta from current process burst to get unused time.
-        // Unused time is greater than zero when process burst is put into negative
+        // Unused time is greater than zero when current process burst becomes negative.
         *process_burst = *process_burst - time_quanta;
         let unused_time: i32 = min(*process_burst, 0);
 

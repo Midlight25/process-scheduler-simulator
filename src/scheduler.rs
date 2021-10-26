@@ -11,6 +11,7 @@ pub fn fcfs_scheduler(mut processes: VecDeque<process::Process>) {
     while !processes.is_empty() || !io_queue.is_empty() {
         // Run process at front of queue
         match processes.pop_front() {
+            // If there is a process in the queue.
             Some(mut process) => {
                 let process_quanta = match process.process_bursts.get(0) {
                     Some(number) => *number,
@@ -20,28 +21,30 @@ pub fn fcfs_scheduler(mut processes: VecDeque<process::Process>) {
                 process.run(process_quanta, global_clock);
                 process.process_bursts.pop_front();
 
+                // Advance global clock by number of units needed to complete this process
                 global_clock += process_quanta;
 
-                // Run if there is an IO burst that comes right after
+                // Check if process has IO burst
                 if process.process_bursts.len() > 0 {
                     process.calc_return_time(global_clock);
                     process.process_bursts.pop_front();
+
                     io_queue.push_back(process);
+                // If process has no IO burst, then it is completed.
                 } else {
                     graveyard.push_back(process);
                 }
             }
+            // There are no processes in the queue.
             None => {
                 global_clock += 1;
             }
         }
 
-        // See if processes are done with IO and send them into the waiting queue.
+        // See if IO_queue processes are done and send them into the process queue.
         for _ in 0..io_queue.len() {
-            let mut process = io_queue.pop_front().unwrap();
-
+            let process = io_queue.pop_front().unwrap();
             if process.return_from_io_time <= global_clock {
-                process.last_accessed = global_clock;
                 processes.push_back(process);
             } else {
                 io_queue.push_back(process);
@@ -49,6 +52,7 @@ pub fn fcfs_scheduler(mut processes: VecDeque<process::Process>) {
         }
     }
 
+    println!("First-Come-First-Serve Results");
     println!("Global Clock: {}", global_clock);
     print_processes(graveyard);
 }
@@ -132,18 +136,18 @@ fn print_processes(mut processes: VecDeque<process::Process>) {
         .sort_by_key(|process| process.name.clone());
 
     for process in processes.iter() {
-        let turnaround_time = process.waiting_time + process.total_process_time;
+        let waiting_time = process.last_accessed - process.total_process_time;
 
         response_avg += process.first_accessed.unwrap();
-        waiting_avg += process.waiting_time;
-        turnaround_avg += turnaround_time;
+        waiting_avg += waiting_time;
+        turnaround_avg += process.last_accessed;
 
         table.add_row(
             Row::new()
                 .with_cell(&process.name)
                 .with_cell(process.first_accessed.unwrap())
-                .with_cell(process.waiting_time)
-                .with_cell(turnaround_time),
+                .with_cell(waiting_time)
+                .with_cell(process.last_accessed),
         );
     }
 
