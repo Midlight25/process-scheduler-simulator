@@ -71,11 +71,6 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
     let mut graveyard: VecDeque<process::Process> = VecDeque::new();
 
     while !processes.is_empty() || !io_queue.is_empty() {
-        
-        // Sort waiting queue if there are processes there
-        if processes.len() > 0 {
-            quick_sort(&mut processes.make_contiguous());
-        }
 
         // Print Current State of the Execution.
         println!("Global Clock is {} ---------------------------", global_clock);
@@ -88,14 +83,18 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
         // Run process at front of queue if there is one.
         match processes.pop_front() {
             Some(mut process) => {
+
+                // Get CPU burst from this process
                 let process_quanta = match process.process_bursts.get(0) {
                     Some(number) => *number,
                     None => panic!("Process burst not found"),
                 };
 
+                // Run CPU burst and load next burst (there might not be one.)
                 process.run(process_quanta, global_clock);
                 process.process_bursts.pop_front();
 
+                // Advance global clock by CPU burst time
                 global_clock += process_quanta;
 
                 // Place into IO queue if there is an IO burst that comes right after
@@ -103,10 +102,13 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
                     process.calc_return_time(global_clock);
                     process.process_bursts.pop_front();
                     io_queue.push_back(process);
+
                 } else {
                     graveyard.push_back(process);
                 }
             }
+
+            // No process in the queue.
             None => {
                 global_clock += 1;
             }
@@ -114,16 +116,21 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
 
         // See if processes are done with IO and send them into the waiting queue.
         for _ in 0..io_queue.len() {
+            
             let process = io_queue.pop_front().unwrap();
+
             if process.return_from_io_time <= global_clock {
+                // Sort processes by CPU burst size to maintain invective.
                 processes.push_back(process);
+                quick_sort(&mut processes.make_contiguous());
+
             } else {
                 io_queue.push_back(process);
             }
         }
     }
 
-    println!("Shortest Job First Results");
+    println!("\nShortest Job First Results");
     println!("Global Clock: {}", global_clock);
     print_processes(graveyard);
 }

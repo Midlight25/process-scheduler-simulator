@@ -49,7 +49,7 @@ impl Process {
         let unused_time: i32 = min(*process_burst, 0);
 
         // Update time last accessed as last bit of clock before process burst expires
-        self.last_accessed = global_clock + (time_quanta - unused_time);
+        self.last_accessed = global_clock + (time_quanta - unused_time) - 1;
 
         return i32::abs(unused_time);
     }

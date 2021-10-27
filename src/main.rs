@@ -158,5 +158,5 @@ fn main() {
         process, process_2, process_3, process_4, process_5, process_6, process_7, process_8,
     ]);
 
-    scheduler::sjf_scheduler(processes);
+    scheduler::fcfs_scheduler(processes);
 }
