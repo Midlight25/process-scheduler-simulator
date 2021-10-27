@@ -9,6 +9,7 @@ pub fn fcfs_scheduler(mut processes: VecDeque<process::Process>) {
     let mut graveyard: VecDeque<process::Process> = VecDeque::new();
 
     while !processes.is_empty() || !io_queue.is_empty() {
+        
         println!("Global Clock is {}", global_clock);
         println!("Current Process Queue:");
         print_queue(&processes);
@@ -70,10 +71,19 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
     let mut graveyard: VecDeque<process::Process> = VecDeque::new();
 
     while !processes.is_empty() || !io_queue.is_empty() {
+        
         // Sort waiting queue if there are processes there
         if processes.len() > 0 {
             quick_sort(&mut processes.make_contiguous());
         }
+
+        // Print Current State of the Execution.
+        println!("Global Clock is {} ---------------------------", global_clock);
+        println!("Current Process Queue:");
+        print_queue(&processes);
+        println!("Current IO Queue:");
+        print_queue(&io_queue);
+        println!("Global Clock is {} ---------------------------", global_clock);
 
         // Run process at front of queue if there is one.
         match processes.pop_front() {
@@ -104,10 +114,8 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
 
         // See if processes are done with IO and send them into the waiting queue.
         for _ in 0..io_queue.len() {
-            let mut process = io_queue.pop_front().unwrap();
-
+            let process = io_queue.pop_front().unwrap();
             if process.return_from_io_time <= global_clock {
-                process.last_accessed = global_clock;
                 processes.push_back(process);
             } else {
                 io_queue.push_back(process);
@@ -115,8 +123,44 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
         }
     }
 
+    println!("Shortest Job First Results");
     println!("Global Clock: {}", global_clock);
     print_processes(graveyard);
+}
+
+pub fn mlfq_scheduler(processes: VecDeque<process::Process>) {
+
+    let mut global_clock:i32 = 0;
+
+    // Highest Priority Queue, RR time quanta of 5
+    let mut level_one: VecDeque<process::Process> = processes;
+    // Second Priority Queue, RR time quanta of 10
+    let mut level_two: VecDeque<process::Process> = VecDeque::new();
+    // Last queue: to save resources, only gets sorted when something is inserted.
+    let mut sjf_queue: VecDeque<process::Process> = VecDeque::new();
+
+    // Processes in IO state are saved here
+    let mut io_queue: VecDeque<process::Process> = VecDeque::new();
+
+    // Processes that have completed are stored here.
+    let mut graveyard: Vec<process::Process> = Vec::new();
+
+    // Loop ends when all processes have been placed in the graveyard, or no processes were supplied.
+    while !level_one.is_empty() || !level_two.is_empty() || !sjf_queue.is_empty() || !io_queue.is_empty() {
+
+        // Checking Queues by priority.
+        if let Some(process) = level_one.pop_front() {
+
+        } else if let Some(process) = level_two.pop_front() {
+
+        // Should be pre-sorted at insertion time, so popping item here should be shortest item.
+        } else if let Some(process) = sjf_queue.pop_front() {
+
+        // No processes in ready queues, but IO queue is still filled
+        } else {
+            global_clock += 1;
+        }
+    }
 }
 
 fn print_processes(mut processes: VecDeque<process::Process>) {
