@@ -150,22 +150,59 @@ pub fn mlfq_scheduler(processes: VecDeque<process::Process>) {
     let mut io_queue: VecDeque<process::Process> = VecDeque::new();
 
     // Processes that have completed are stored here.
-    let mut graveyard: Vec<process::Process> = Vec::new();
+    let mut graveyard: VecDeque<process::Process> = VecDeque::new();
 
     // Loop ends when all processes have been placed in the graveyard, or no processes were supplied.
     while !level_one.is_empty() || !level_two.is_empty() || !sjf_queue.is_empty() || !io_queue.is_empty() {
 
         // Checking Queues by priority.
-        if let Some(process) = level_one.pop_front() {
+        if let Some(mut process) = level_one.pop_front() {
+            let left_over = process.run(5, global_clock);
 
-        } else if let Some(process) = level_two.pop_front() {
+        } else if let Some(mut process) = level_two.pop_front() {
+            process.run(10, global_clock);
 
         // Should be pre-sorted at insertion time, so popping item here should be shortest item.
-        } else if let Some(process) = sjf_queue.pop_front() {
+        } else if let Some(mut process) = sjf_queue.pop_front() {
+            
+            let process_quanta = match process.process_bursts.get(0) {
+                Some(number) => *number,
+                None => panic!("Could not find process burst for this process.")
+            };
+
+            // Run CPU burst and load next burst (there might not be one.)
+            process.run(process_quanta, global_clock);
+            process.process_bursts.pop_front();
+
+            // Advance global clock by CPU burst time
+            global_clock += process_quanta;
+
+            // Place into IO queue if there is an IO burst that comes right after
+            if process.process_bursts.len() > 0 {
+                
+                process.calc_return_time(global_clock);
+                process.process_bursts.pop_front();
+                io_queue.push_back(process);
+
+            } else {
+                graveyard.push_back(process);
+            }
+
 
         // No processes in ready queues, but IO queue is still filled
         } else {
             global_clock += 1;
+        }
+
+        // See if processes are done with IO and send them into the waiting queue.
+        for _ in 0..io_queue.len() {
+
+            let process = io_queue.pop_front().unwrap();
+            if process.return_from_io_time <= global_clock {
+                level_one.push_back(process);
+            } else {
+                io_queue.push_back(process);
+            }
         }
     }
 }
