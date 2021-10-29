@@ -21,6 +21,8 @@ pub struct Process {
     // Calculated at process creation time, total burst times summed up from process_bursts
     // used to calculate waiting time later.
     pub total_process_time: i32,
+    // Determines whether the current burst has completed.
+    pub burst_completed: bool
 }
 
 impl Process {
@@ -48,6 +50,9 @@ impl Process {
         *process_burst = *process_burst - time_quanta;
         let unused_time: i32 = min(*process_burst, 0);
 
+        // Set complete burst flag
+        self.burst_completed = *process_burst <= 0;
+
         // Update time last accessed as last bit of clock before process burst expires
         self.last_accessed = global_clock + (time_quanta - unused_time) - 1;
 
@@ -63,6 +68,23 @@ impl Process {
 
         // Save to struct member for later.
         self.return_from_io_time = global_clock + process_burst;
+    }
+
+    pub fn ready_next_io(&mut self) {
+        // State of process bursts must be odd to indicate current CPU burst
+        assert!(self.process_bursts.len() % 2 != 0);
+
+        // Move process burst to next CPU
+        self.process_bursts.pop_front();
+    }
+
+    pub fn ready_next_cpu(&mut self) {
+        // State of process bursts must be even to indicate current CPU burst
+        assert!(self.process_bursts.len() % 2 == 0);
+
+        // Reset burst complete flag as well
+        self.process_bursts.pop_front();
+        self.burst_completed = false;
     }
 }
 

@@ -9,7 +9,6 @@ pub fn fcfs_scheduler(mut processes: VecDeque<process::Process>) {
     let mut graveyard: VecDeque<process::Process> = VecDeque::new();
 
     while !processes.is_empty() || !io_queue.is_empty() {
-        
         println!("Global Clock is {}", global_clock);
         println!("Current Process Queue:");
         print_queue(&processes);
@@ -27,7 +26,7 @@ pub fn fcfs_scheduler(mut processes: VecDeque<process::Process>) {
                 };
 
                 process.run(process_quanta, global_clock);
-                process.process_bursts.pop_front();
+                process.ready_next_io();
 
                 // Advance global clock by number of units needed to complete this process
                 global_clock += process_quanta;
@@ -35,7 +34,7 @@ pub fn fcfs_scheduler(mut processes: VecDeque<process::Process>) {
                 // Check if process has IO burst
                 if process.process_bursts.len() > 0 {
                     process.calc_return_time(global_clock);
-                    process.process_bursts.pop_front();
+                    process.ready_next_cpu();
 
                     io_queue.push_back(process);
                 // If process has no IO burst, then it is completed.
@@ -71,19 +70,23 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
     let mut graveyard: VecDeque<process::Process> = VecDeque::new();
 
     while !processes.is_empty() || !io_queue.is_empty() {
-
         // Print Current State of the Execution.
-        println!("Global Clock is {} ---------------------------", global_clock);
+        println!(
+            "Global Clock is {} ---------------------------",
+            global_clock
+        );
         println!("Current Process Queue:");
         print_queue(&processes);
         println!("Current IO Queue:");
         print_queue(&io_queue);
-        println!("Global Clock is {} ---------------------------", global_clock);
+        println!(
+            "Global Clock is {} ---------------------------",
+            global_clock
+        );
 
         // Run process at front of queue if there is one.
         match processes.pop_front() {
             Some(mut process) => {
-
                 // Get CPU burst from this process
                 let process_quanta = match process.process_bursts.get(0) {
                     Some(number) => *number,
@@ -92,7 +95,7 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
 
                 // Run CPU burst and load next burst (there might not be one.)
                 process.run(process_quanta, global_clock);
-                process.process_bursts.pop_front();
+                process.ready_next_io();
 
                 // Advance global clock by CPU burst time
                 global_clock += process_quanta;
@@ -100,9 +103,8 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
                 // Place into IO queue if there is an IO burst that comes right after
                 if process.process_bursts.len() > 0 {
                     process.calc_return_time(global_clock);
-                    process.process_bursts.pop_front();
+                    process.ready_next_cpu();
                     io_queue.push_back(process);
-
                 } else {
                     graveyard.push_back(process);
                 }
@@ -116,14 +118,12 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
 
         // See if processes are done with IO and send them into the waiting queue.
         for _ in 0..io_queue.len() {
-            
             let process = io_queue.pop_front().unwrap();
 
             if process.return_from_io_time <= global_clock {
                 // Sort processes by CPU burst size to maintain invective.
                 processes.push_back(process);
                 quick_sort(&mut processes.make_contiguous());
-
             } else {
                 io_queue.push_back(process);
             }
@@ -136,8 +136,7 @@ pub fn sjf_scheduler(mut processes: VecDeque<process::Process>) {
 }
 
 pub fn mlfq_scheduler(processes: VecDeque<process::Process>) {
-
-    let mut global_clock:i32 = 0;
+    let mut global_clock: i32 = 0;
 
     // Highest Priority Queue, RR time quanta of 5
     let mut level_one: VecDeque<process::Process> = processes;
@@ -153,41 +152,53 @@ pub fn mlfq_scheduler(processes: VecDeque<process::Process>) {
     let mut graveyard: VecDeque<process::Process> = VecDeque::new();
 
     // Loop ends when all processes have been placed in the graveyard, or no processes were supplied.
-    while !level_one.is_empty() || !level_two.is_empty() || !sjf_queue.is_empty() || !io_queue.is_empty() {
-
+    while !level_one.is_empty()
+        || !level_two.is_empty()
+        || !sjf_queue.is_empty()
+        || !io_queue.is_empty()
+    {
         // Checking Queues by priority.
         if let Some(mut process) = level_one.pop_front() {
             let left_over = process.run(5, global_clock);
 
+            global_clock += 5 - left_over;
+
+            // If process burst completed, send to IO
+            if process.burst_completed {
+                process.ready_next_io();
+                process.calc_return_time(global_clock);
+                process.ready_next_cpu();
+                io_queue.push_back(process);
+
+            // If process burst did not complete, send to lower queue.
+            } else {
+                level_two.push_back(process);
+            }
         } else if let Some(mut process) = level_two.pop_front() {
             process.run(10, global_clock);
 
         // Should be pre-sorted at insertion time, so popping item here should be shortest item.
         } else if let Some(mut process) = sjf_queue.pop_front() {
-            
             let process_quanta = match process.process_bursts.get(0) {
                 Some(number) => *number,
-                None => panic!("Could not find process burst for this process.")
+                None => panic!("Could not find process burst for this process."),
             };
 
             // Run CPU burst and load next burst (there might not be one.)
             process.run(process_quanta, global_clock);
-            process.process_bursts.pop_front();
+            process.ready_next_io();
 
             // Advance global clock by CPU burst time
             global_clock += process_quanta;
 
             // Place into IO queue if there is an IO burst that comes right after
             if process.process_bursts.len() > 0 {
-                
                 process.calc_return_time(global_clock);
-                process.process_bursts.pop_front();
+                process.ready_next_cpu();
                 io_queue.push_back(process);
-
             } else {
                 graveyard.push_back(process);
             }
-
 
         // No processes in ready queues, but IO queue is still filled
         } else {
@@ -196,7 +207,6 @@ pub fn mlfq_scheduler(processes: VecDeque<process::Process>) {
 
         // See if processes are done with IO and send them into the waiting queue.
         for _ in 0..io_queue.len() {
-
             let process = io_queue.pop_front().unwrap();
             if process.return_from_io_time <= global_clock {
                 level_one.push_back(process);
