@@ -157,25 +157,61 @@ pub fn mlfq_scheduler(processes: VecDeque<process::Process>) {
         || !sjf_queue.is_empty()
         || !io_queue.is_empty()
     {
-        // Checking Queues by priority.
+        // Checking Queues by priority: LEVEL ONE RR 5
         if let Some(mut process) = level_one.pop_front() {
             let left_over = process.run(5, global_clock);
 
             global_clock += 5 - left_over;
 
-            // If process burst completed, send to IO
+            // If process burst completed, send to IO or graveyard
             if process.burst_completed {
                 process.ready_next_io();
-                process.calc_return_time(global_clock);
-                process.ready_next_cpu();
-                io_queue.push_back(process);
-
+                if process.process_bursts.len() > 0 {
+                    process.calc_return_time(global_clock);
+                    process.ready_next_cpu();
+                    io_queue.push_back(process);
+                    quick_sort(&mut io_queue.make_contiguous());
+                } else {
+                    graveyard.push_back(process);
+                }
             // If process burst did not complete, send to lower queue.
             } else {
                 level_two.push_back(process);
             }
+        // LEVEL TWO RR 10
         } else if let Some(mut process) = level_two.pop_front() {
-            process.run(10, global_clock);
+            let left_over = process.run(10, global_clock);
+
+            global_clock += 10 - left_over;
+
+            // Process completes, send to IO or graveyard
+            if process.burst_completed {
+                process.ready_next_io();
+                if process.process_bursts.len() > 0 {
+                    process.calc_return_time(global_clock);
+                    process.ready_next_cpu();
+                    io_queue.push_back(process);
+                    quick_sort(&mut io_queue.make_contiguous());
+                } else {
+                    graveyard.push_back(process);
+                }
+
+            // Process did not complete
+            } else {
+                // Peak top of IO queue to see if this process will get preempted.
+                if let Some(io_process) = io_queue.get(0) {
+                    if io_process.return_from_io_time <= global_clock {
+                        level_two.push_back(process);
+                    } else {
+                        sjf_queue.push_back(process);
+                        quick_sort(&mut sjf_queue.make_contiguous());
+                    }
+                // No Process at top of IO queue, there will be no preemption.
+                } else {
+                    sjf_queue.push_back(process);
+                    quick_sort(&mut sjf_queue.make_contiguous());
+                }
+            }
 
         // Should be pre-sorted at insertion time, so popping item here should be shortest item.
         } else if let Some(mut process) = sjf_queue.pop_front() {
@@ -186,16 +222,17 @@ pub fn mlfq_scheduler(processes: VecDeque<process::Process>) {
 
             // Run CPU burst and load next burst (there might not be one.)
             process.run(process_quanta, global_clock);
-            process.ready_next_io();
 
             // Advance global clock by CPU burst time
             global_clock += process_quanta;
+            process.ready_next_io();
 
             // Place into IO queue if there is an IO burst that comes right after
             if process.process_bursts.len() > 0 {
                 process.calc_return_time(global_clock);
                 process.ready_next_cpu();
                 io_queue.push_back(process);
+                quick_sort(&mut io_queue.make_contiguous());
             } else {
                 graveyard.push_back(process);
             }
@@ -215,6 +252,10 @@ pub fn mlfq_scheduler(processes: VecDeque<process::Process>) {
             }
         }
     }
+
+    println!("\nMLFQ Job First Results");
+    println!("Global Clock: {}", global_clock);
+    print_processes(graveyard);
 }
 
 fn print_processes(mut processes: VecDeque<process::Process>) {

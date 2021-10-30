@@ -22,7 +22,7 @@ pub struct Process {
     // used to calculate waiting time later.
     pub total_process_time: i32,
     // Determines whether the current burst has completed.
-    pub burst_completed: bool
+    pub burst_completed: bool,
 }
 
 impl Process {
