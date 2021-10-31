@@ -2,8 +2,12 @@ mod process;
 mod scheduler;
 
 use std::collections::VecDeque;
+use std::io;
 
 fn main() {
+
+    // Setting up processes for simulation.
+
     let process = process::Process {
         process_bursts: VecDeque::from(vec![5, 27, 3, 31, 5, 43, 4, 18, 6, 22, 4, 26, 3, 24, 5]),
         total_process_time: 5 + 27 + 3 + 31 + 5 + 43 + 4 + 18 + 6 + 22 + 4 + 26 + 3 + 24 + 5,
@@ -158,5 +162,32 @@ fn main() {
         process, process_2, process_3, process_4, process_5, process_6, process_7, process_8,
     ]);
 
-    scheduler::mlfq_scheduler(processes);
+    // Starting CMD Portion
+    println!("PROCESS SCHEDULING SIMULATOR\n");
+
+    println!("Main Menu:");
+    println!("  1. First Come First Serve");
+    println!("  2. Shortest Job First");
+    println!("  3. Multi-Level Feedback Queue");
+
+    println!("Please select the queue that you would like to simulate today, (1, 2, 3)\n");
+
+    // Read chars from STDIN
+    let mut selection = String::new();
+    io::stdin()
+        .read_line(&mut selection)
+        .expect("Failed to read line");
+
+    // Convert from chars to numbers if chars are representations of numbers and nothing else.
+    let selection: i32 = selection.trim().parse().expect("Please type a number!");
+
+    // Run scheduler based on selection
+    match selection {
+        1 => scheduler::fcfs_scheduler(processes),
+        2 => scheduler::sjf_scheduler(processes),
+        3 => scheduler::mlfq_scheduler(processes),
+        _ => println!("I'm sorry, that guess doesn't match an option"),
+    }
+
+    println!("Goodbye!")
 }

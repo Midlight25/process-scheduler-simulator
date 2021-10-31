@@ -60,6 +60,12 @@ impl Process {
     }
 
     pub fn calc_return_time(&mut self, global_clock: i32) {
+        /*
+            Calculate return time of process from IO queue against global clock.
+            Function does not know if burst at top of queue is CPU or IO so the dev
+            must know whether or not that is true before hand.
+         */
+
         // Get current CPU burst from top of Queue
         let process_burst = match self.process_bursts.get(0) {
             Some(num_reference) => num_reference,
@@ -71,6 +77,11 @@ impl Process {
     }
 
     pub fn ready_next_io(&mut self) {
+        /*
+            Check's process state if it is current CPU burst, pop's off CPU burst
+            to expose next IO burst.
+         */
+
         // State of process bursts must be odd to indicate current CPU burst
         assert!(self.process_bursts.len() % 2 != 0);
 
@@ -79,6 +90,11 @@ impl Process {
     }
 
     pub fn ready_next_cpu(&mut self) {
+        /*
+            Check's process state if it is current IO burst, pop's off IO burst
+            to expose next CPU burst.
+         */
+
         // State of process bursts must be even to indicate current CPU burst
         assert!(self.process_bursts.len() % 2 == 0);
 
@@ -88,6 +104,7 @@ impl Process {
     }
 }
 
+// Extension of PartialEq
 impl PartialOrd for Process {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.process_bursts
@@ -97,12 +114,14 @@ impl PartialOrd for Process {
     }
 }
 
+// Allow processes to be compared using <, >, etc using the current CPU burst.
 impl PartialEq for Process {
     fn eq(&self, other: &Self) -> bool {
         self.process_bursts.get(0).unwrap() == other.process_bursts.get(0).unwrap()
     }
 }
 
+// Allow process information to be pretty printed to the console.
 impl Display for Process {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(
