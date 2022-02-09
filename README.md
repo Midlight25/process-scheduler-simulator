@@ -22,4 +22,10 @@ There are a few assumptions for this simulator:
 
 ## Dependencies
 
-At this point in time, this program does not have any dependencies
+### Sorts
+
+A collection of sorting functions for collections. In this project, I used the Quick Sort function for efficient sorting of the many process queues.
+
+### Tabular
+
+A package that generates tables for use on CLI.
